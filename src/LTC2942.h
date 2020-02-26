@@ -67,25 +67,32 @@
 
 #define SHUTDOWN_MASK			0b11111110
 
+#define LTC2942_FULLSCALE_VOLTAGE      6000		// Full scale voltage in mv
+#define LTC2942_FULLSCALE_TEMPERATURE  60000	// Full scale temp in 0.01 degC
+
 class LTC2942 {
 	public:
-		LTC2942(uint8_t rSense = 50);
+		LTC2942(uint8_t rSense = 50);					// Sense resistor value in mOhm
 		bool begin(TwoWire &wirePort = Wire);
 		void startMeasurement();
 		void stopMeasurement();
 		uint8_t getStatus();
+		
 		uint16_t getRawAccumulatedCharge();
-		float getRemainingCapacity();
-		float getVoltage(bool oneShot = true);
-		float getTemperature(bool oneShot = true);
+		uint16_t getRemainingCapacity();				// Capacity in mAh
+		uint16_t getVoltage(bool oneShot = true);		// Voltage in mV
+		int16_t  getTemperature(bool oneShot = true);	// Temperature in units of 0.01 Celcius	
+
 		void setADCMode(uint8_t mode);
 		void setPrescalerM(uint8_t m);
-		void setBatteryCapacity(uint16_t mAh);
+		void setBatteryCapacity(uint16_t mAh);			// battery capacity in mAh
 		void setBatteryToFull();
 		void setRawAccumulatedCharge(uint16_t charge);
+
 		void setChargeThresholds(uint16_t high, uint16_t low);
 		void setVoltageThresholds(float high, float low);
 		void setTemperatureThresholds(float high, float low);
+
 		void configureALCC(uint8_t mode);
 		uint8_t findExponentOfPowerOfTwo(uint8_t value);
 		uint8_t roundUpToPowerOfTwo(uint8_t value);
@@ -98,6 +105,10 @@ class LTC2942 {
 		uint8_t _prescalerM;
 		uint16_t _batteryCapacity;
 		TwoWire *_i2cPort;
+		uint8_t M;			// prescaler
+		uint32_t _num;      // numerator
+		uint32_t _den;      // denominator
+		uint32_t _offset;   // offset
 };
 
 #endif

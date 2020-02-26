@@ -55,29 +55,66 @@ uint16_t LTC2942::getRawAccumulatedCharge() {
 	return acr;
 }
 
+uint16_t LTC2942::getRemainingCapacity() {
+	uint16_t acr = getRawAccumulatedCharge();
+	//charge in mAh, multiplier of 50 is split to 5 and 10 to prevent unsigned long overflow
+    return (uint16_t)(((uint32_t)acr * _num / _den));//) - _offset);	
+}
+
+/*
 float LTC2942::getRemainingCapacity() {
 	uint16_t acr = getRawAccumulatedCharge();
 	float fullRange = 65536 * ((float) _prescalerM / 128) * 0.085;
 	float offset = fullRange - _batteryCapacity;
 	return (acr * ((float) _prescalerM / 128) * 0.085 * ((float) 50 / _rSense)) - offset; // mAh
 }
+*/
 
-float LTC2942::getVoltage(bool oneShot) {
+/*
+ *  Note:
+ *  1. Datasheet conversion formula divide by 65535, in this library we divide by 65536 (>> 16) to reduce computational load 
+ *     this is acceptable as the difference is much lower than the resolution of LTC2942 voltage measurement (78mV)
+ *  2. Return is in unsigned short and mV to prevent usage of float datatype, the resolution of LTC2942 voltage measurement (78mV), 
+ *     floating point offset is acceptable as it is lower than the resolution of LTC2942 voltage measurement (78mV)
+ */
+uint16_t LTC2942::getVoltage(bool oneShot) {
 	if (oneShot) {
 		setADCMode(ADC_MODE_MANUAL_VOLTAGE);
-		delay(10);
+		for(int i=0; i<500; ++i);  // Small delay to wait for the converstion to complete - Ideally it should be 10ms
+		//delay(10);
 	}
-	uint16_t value = readWordFromRegisters(REG_I_VOLTAGE_MSB);
-	return 6 * ((float) value / 65535); // V
+	uint16_t value = 0;
+	uint8_t msb = readByteFromRegister(REG_I_VOLTAGE_MSB);
+	uint8_t lsb = readByteFromRegister(REG_J_VOLTAGE_LSB);
+	value = ( lsb | (msb << 8) );
+	//uint16_t value = readWordFromRegisters(REG_I_VOLTAGE_MSB);	
+	uint32_t vBat = ((uint32_t)value * LTC2942_FULLSCALE_VOLTAGE);	// FULLSCALE_VOLTAGE is in mV, to avoid using float datatype
+    vBat >>= 16;
+	return (uint16_t)vBat;	//V
 }
 
-float LTC2942::getTemperature(bool oneShot) {
+/*
+ *  Note:
+ *  1. Datasheet conversion formula divide by 65535, in this library we divide by 65536 (>> 16) to reduce computational load 
+ *     this is acceptable as the difference is much lower than the resolution of LTC2942 temperature measurement (3 Celcius)
+ *  2. Return is in short to prevent usage of float datatype, floating point offset is acceptable as it is lower than the resolution of LTC2942 voltage measurement (3 Celcius).
+ *     Unit of 0.01 Celcius
+ */
+int16_t LTC2942::getTemperature(bool oneShot) {
 	if (oneShot) {
 		setADCMode(ADC_MODE_MANUAL_TEMP);
-		delay(10);
+		for(int i=0; i<500; ++i);  // Small delay to wait for the converstion to complete - Ideally it should be 10ms
+		//delay(10);
 	}
-	uint16_t value = readWordFromRegisters(REG_M_TEMP_MSB);
-	return (600 * ((float) value / 65535)) - 273; // Celsius
+	uint16_t value = 0;
+	uint8_t msb = readByteFromRegister(REG_M_TEMP_MSB);
+	uint8_t lsb = readByteFromRegister(REG_N_TEMP_LSB);
+	value = ( lsb | (msb << 8) );
+	//uint16_t value = readWordFromRegisters(REG_M_TEMP_MSB);	
+	uint32_t tBat = ((uint32_t)value * LTC2942_FULLSCALE_TEMPERATURE);
+    tBat >>= 16;
+    tBat -= 27315;  // Convert temperature from kelvin to degree celsius	
+	return (int16_t)tBat;
 }
 
 void LTC2942::setADCMode(uint8_t mode) {
@@ -106,6 +143,26 @@ void LTC2942::setPrescalerM(uint8_t m) {
 	writeByteToRegister(REG_B_CONTROL, value);
 }
 
+// Credit to https://github.com/DelfiSpace/LTC2942/blob/master/LTC2942.cpp
+void LTC2942::setBatteryCapacity(uint16_t mAh) {
+	_batteryCapacity = mAh;		
+    unsigned int k, a;
+    m = 7;
+    for(k = 128; k > 1; k = k / 2) {
+        a = 278524 * k / _rSense / 128;
+        if (a < (2 * mAh)) {
+            break;
+        }
+        m--;
+    }
+
+    _num = 87 * 50 * k;
+    _den = 128 * _rSense;
+    _offset = (64 * _num / _den) - mAh;
+	setPrescalerM(m);	
+}
+
+/*
 void LTC2942::setBatteryCapacity(uint16_t mAh) {
 	_batteryCapacity = mAh;
 	float q = (float) mAh / 1000;
@@ -119,6 +176,7 @@ void LTC2942::setBatteryCapacity(uint16_t mAh) {
 	m = roundUpToPowerOfTwo(m);
 	setPrescalerM(m);
 }
+*/
 
 void LTC2942::setBatteryToFull() {
 	writeWordToRegisters(REG_C_ACC_CHG_MSB, 0xFFFF);
