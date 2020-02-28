@@ -147,7 +147,7 @@ void LTC2942::setPrescalerM(uint8_t m) {
 void LTC2942::setBatteryCapacity(uint16_t mAh) {
 	_batteryCapacity = mAh;		
     unsigned int k, a;
-    m = 7;
+    uin8_t m = 7;
     for(k = 128; k > 1; k = k / 2) {
         a = 278524 * k / _rSense / 128;
         if (a < (2 * mAh)) {
@@ -159,7 +159,8 @@ void LTC2942::setBatteryCapacity(uint16_t mAh) {
     _num = 87 * 50 * k;
     _den = 128 * _rSense;
     _offset = (64 * _num / _den) - mAh;
-	setPrescalerM(m);	
+	setPrescalerM(m);
+	_prescalerM = m;
 }
 
 /*
