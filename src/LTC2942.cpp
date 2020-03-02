@@ -58,7 +58,7 @@ uint16_t LTC2942::getRawAccumulatedCharge() {
 uint16_t LTC2942::getRemainingCapacity() {
 	uint16_t acr = getRawAccumulatedCharge();
 	//charge in mAh, multiplier of 50 is split to 5 and 10 to prevent unsigned long overflow
-    return (uint16_t)(((uint32_t)acr * _num / _den));//) - _offset);	
+    return (uint16_t)(((uint32_t)acr * _num / _den) - _offset);	
 }
 
 /*
@@ -80,17 +80,13 @@ float LTC2942::getRemainingCapacity() {
 uint16_t LTC2942::getVoltage(bool oneShot) {
 	if (oneShot) {
 		setADCMode(ADC_MODE_MANUAL_VOLTAGE);
-		for(int i=0; i<500; ++i);  // Small delay to wait for the converstion to complete - Ideally it should be 10ms
-		//delay(10);
+		//for(uint16_t i=0; i<4000; ++i);  // Small delay to wait for the converstion to complete - Ideally it should be 10ms
+		delay(10);
 	}
-	uint16_t value = 0;
-	uint8_t msb = readByteFromRegister(REG_I_VOLTAGE_MSB);
-	uint8_t lsb = readByteFromRegister(REG_J_VOLTAGE_LSB);
-	value = ( lsb | (msb << 8) );
-	//uint16_t value = readWordFromRegisters(REG_I_VOLTAGE_MSB);	
+	uint16_t value = readWordFromRegisters(REG_I_VOLTAGE_MSB);
 	uint32_t vBat = ((uint32_t)value * LTC2942_FULLSCALE_VOLTAGE);	// FULLSCALE_VOLTAGE is in mV, to avoid using float datatype
     vBat >>= 16;
-	return (uint16_t)vBat;	//V
+	return (uint16_t)vBat;	//mV
 }
 
 /*
@@ -103,17 +99,13 @@ uint16_t LTC2942::getVoltage(bool oneShot) {
 int16_t LTC2942::getTemperature(bool oneShot) {
 	if (oneShot) {
 		setADCMode(ADC_MODE_MANUAL_TEMP);
-		for(int i=0; i<500; ++i);  // Small delay to wait for the converstion to complete - Ideally it should be 10ms
-		//delay(10);
+		//for(uint16_t i=0; i<4000; ++i);  // Small delay to wait for the converstion to complete - Ideally it should be 10ms
+		delay(10);
 	}
-	uint16_t value = 0;
-	uint8_t msb = readByteFromRegister(REG_M_TEMP_MSB);
-	uint8_t lsb = readByteFromRegister(REG_N_TEMP_LSB);
-	value = ( lsb | (msb << 8) );
-	//uint16_t value = readWordFromRegisters(REG_M_TEMP_MSB);	
+	uint16_t value = readWordFromRegisters(REG_M_TEMP_MSB);	
 	uint32_t tBat = ((uint32_t)value * LTC2942_FULLSCALE_TEMPERATURE);
     tBat >>= 16;
-    tBat -= 27315;  // Convert temperature from kelvin to degree celsius	
+    tBat -= 2731;  // Convert temperature from kelvin to degree celsius	
 	return (int16_t)tBat;
 }
 
@@ -160,7 +152,6 @@ void LTC2942::setBatteryCapacity(uint16_t mAh) {
     _den = 128 * _rSense;
     _offset = (64 * _num / _den) - mAh;
 	setPrescalerM(m);
-	_prescalerM = m;
 }
 
 /*
@@ -192,14 +183,14 @@ void LTC2942::setChargeThresholds(uint16_t high, uint16_t low) {
 	writeWordToRegisters(REG_G_CHG_THR_L_MSB, low);
 }
 
-void LTC2942::setVoltageThresholds(float high, float low) {
-	writeByteToRegister(REG_K_VOLTAGE_THR_H, (uint8_t) (high / 0.0234375));
-	writeByteToRegister(REG_L_VOLTAGE_THR_L, (uint8_t) (low / 0.0234375));
+void LTC2942::setVoltageThresholds(uint16_t high, uint16_t low) {
+	writeByteToRegister(REG_K_VOLTAGE_THR_H, (uint8_t) (high / 23.4375));
+	writeByteToRegister(REG_L_VOLTAGE_THR_L, (uint8_t) (low / 23.4375));
 }
 
-void LTC2942::setTemperatureThresholds(float high, float low) {
-	writeByteToRegister(REG_M_TEMP_MSB, (uint8_t) ((high + 273) / 2.34375));
-	writeByteToRegister(REG_N_TEMP_LSB, (uint8_t) ((low + 273) / 2.34375));
+void LTC2942::setTemperatureThresholds(int16_t high, int16_t low) {
+	writeByteToRegister(REG_M_TEMP_MSB, (uint8_t) ((high + 2731) / 23.4375));
+	writeByteToRegister(REG_N_TEMP_LSB, (uint8_t) ((low + 2731) / 23.4375));
 }
 
 void LTC2942::configureALCC(uint8_t mode) {

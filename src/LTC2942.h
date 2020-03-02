@@ -67,8 +67,8 @@
 
 #define SHUTDOWN_MASK			0b11111110
 
-#define LTC2942_FULLSCALE_VOLTAGE      6000		// Full scale voltage in mv
-#define LTC2942_FULLSCALE_TEMPERATURE  60000	// Full scale temp in 0.01 degC
+#define LTC2942_FULLSCALE_VOLTAGE      6000	// Full scale voltage in mv
+#define LTC2942_FULLSCALE_TEMPERATURE  6000	// Full scale temp in 0.1 degC
 
 class LTC2942 {
 	public:
@@ -81,7 +81,7 @@ class LTC2942 {
 		uint16_t getRawAccumulatedCharge();
 		uint16_t getRemainingCapacity();				// Capacity in mAh
 		uint16_t getVoltage(bool oneShot = true);		// Voltage in mV
-		int16_t  getTemperature(bool oneShot = true);	// Temperature in units of 0.01 Celcius	
+		int16_t  getTemperature(bool oneShot = true);	// Temperature in units of 0.1 Celcius	
 
 		void setADCMode(uint8_t mode);
 		void setPrescalerM(uint8_t m);
@@ -90,8 +90,8 @@ class LTC2942 {
 		void setRawAccumulatedCharge(uint16_t charge);
 
 		void setChargeThresholds(uint16_t high, uint16_t low);
-		void setVoltageThresholds(float high, float low);
-		void setTemperatureThresholds(float high, float low);
+		void setVoltageThresholds(uint16_t high, uint16_t low);     // Voltage in mV
+		void setTemperatureThresholds(int16_t high, int16_t low); // Temperature in units of 0.1 Celcius
 
 		void configureALCC(uint8_t mode);
 		uint8_t findExponentOfPowerOfTwo(uint8_t value);
