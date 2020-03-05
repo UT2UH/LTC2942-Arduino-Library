@@ -13,6 +13,7 @@
 #include "Wire.h"
 
 #define LTC2942_ADDRESS			0x64
+#define LTC2942_ARA_ADR			0x0C
 
 /* Register Map */
 
@@ -77,6 +78,7 @@ class LTC2942 {
 		void startMeasurement();
 		void stopMeasurement();
 		uint8_t getStatus();
+		void resetAlert();
 		
 		uint16_t getRawAccumulatedCharge();
 		uint16_t getRemainingCapacity();				// Capacity in mAh

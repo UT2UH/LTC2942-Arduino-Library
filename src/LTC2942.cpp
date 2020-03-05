@@ -57,6 +57,8 @@ uint16_t LTC2942::getRawAccumulatedCharge() {
 
 uint16_t LTC2942::getRemainingCapacity() {
 	uint16_t acr = getRawAccumulatedCharge();
+	float fullRange = 65536 * ((float) _prescalerM / 128) * 0.085;
+	float offset = fullRange - _batteryCapacity;
 	//charge in mAh, multiplier of 50 is split to 5 and 10 to prevent unsigned long overflow
     return (uint16_t)(((uint32_t)acr * _num / _den) - _offset);	
 }
@@ -135,6 +137,7 @@ void LTC2942::setPrescalerM(uint8_t m) {
 	writeByteToRegister(REG_B_CONTROL, value);
 }
 
+/*
 // Credit to https://github.com/DelfiSpace/LTC2942/blob/master/LTC2942.cpp
 void LTC2942::setBatteryCapacity(uint16_t mAh) {
 	_batteryCapacity = mAh;		
@@ -153,8 +156,8 @@ void LTC2942::setBatteryCapacity(uint16_t mAh) {
     _offset = (64 * _num / _den) - mAh;
 	setPrescalerM(m);
 }
+*/
 
-/*
 void LTC2942::setBatteryCapacity(uint16_t mAh) {
 	_batteryCapacity = mAh;
 	float q = (float) mAh / 1000;
@@ -166,9 +169,12 @@ void LTC2942::setBatteryCapacity(uint16_t mAh) {
 		m = 128;
 	}
 	m = roundUpToPowerOfTwo(m);
+    _num = 87 * 50 * m;
+    _den = 128 * _rSense;
+    _offset = (64 * _num / _den) - mAh;	
 	setPrescalerM(m);
 }
-*/
+
 
 void LTC2942::setBatteryToFull() {
 	writeWordToRegisters(REG_C_ACC_CHG_MSB, 0xFFFF);
@@ -271,4 +277,10 @@ bool LTC2942::writeByteToRegister(uint8_t address, uint8_t value) {
 	_i2cPort->write(address);
 	_i2cPort->write(value);
 	return (_i2cPort->endTransmission() == 0);
+}
+
+void LTC2942::resetAlert() {
+	_i2cPort->requestFrom(LTC2942_ARA_ADR, 1);
+	_i2cPort->read();
+	_i2cPort->endTransmission();
 }
