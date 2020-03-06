@@ -71,6 +71,7 @@
 #define LTC2942_FULLSCALE_VOLTAGE      6000	// Full scale voltage in mv
 #define LTC2942_FULLSCALE_TEMPERATURE  6000	// Full scale temp in 0.1 degC
 
+
 class LTC2942 {
 	public:
 		LTC2942(uint8_t rSense = 50);					// Sense resistor value in mOhm
@@ -82,6 +83,7 @@ class LTC2942 {
 		
 		uint16_t getRawAccumulatedCharge();
 		uint16_t getRemainingCapacity();				// Capacity in mAh
+		uint16_t getRemainingTime(uint8_t idx);			// Time in Hours
 		uint16_t getVoltage(bool oneShot = true);		// Voltage in mV
 		int16_t  getTemperature(bool oneShot = true);	// Temperature in units of 0.1 Celcius	
 
@@ -102,10 +104,17 @@ class LTC2942 {
 		bool writeWordToRegisters(uint8_t msbAddress, uint16_t value);
 		uint8_t readByteFromRegister(uint8_t address);
 		bool writeByteToRegister(uint8_t address, uint8_t value);
+
+		uint16_t meanUsagePerHour;
+		uint16_t availableHours;
+		const uint8_t intervalM[5] = {1, 6, 15, 30, 60};
+
 	private:
 		uint8_t _rSense;
 		uint8_t _prescalerM;
 		uint16_t _batteryCapacity;
+		uint16_t _chargeBefore;
+		uint16_t _usageFromStart;
 		TwoWire *_i2cPort;
 		uint8_t M;			// prescaler
 		uint32_t _num;      // numerator

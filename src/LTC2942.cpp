@@ -8,10 +8,15 @@
 
 #include "LTC2942.h"
 
+
 LTC2942::LTC2942(uint8_t rSense) {
 	_rSense = rSense;
 	_prescalerM = 0xFF;
 	_batteryCapacity = 5500; // Default value when M = 128
+	_chargeBefore = 0;
+	_usageFromStart = 0;
+	meanUsagePerHour = 0;
+	availableHours = 0;
 }
 
 bool LTC2942::begin(TwoWire &wirePort) {
@@ -71,6 +76,22 @@ float LTC2942::getRemainingCapacity() {
 	return (acr * ((float) _prescalerM / 128) * 0.085 * ((float) 50 / _rSense)) - offset; // mAh
 }
 */
+
+uint16_t LTC2942::getRemainingTime(uint8_t idx)
+{
+	uint16_t chargeNow = getRawAccumulatedCharge();
+	if(idx == 0){
+		_chargeBefore = chargeNow;
+	} else {
+		uint16_t usagePerInterval = _chargeBefore - chargeNow;
+		_chargeBefore  = chargeNow;
+		uint16_t usagePerHour = (60 / intervalM[idx - 1]) * usagePerInterval;
+		_usageFromStart += usagePerHour;
+		meanUsagePerHour = _usageFromStart / idx;
+		availableHours = chargeNow / meanUsagePerHour;
+	}
+	return availableHours;
+}
 
 /*
  *  Note:
